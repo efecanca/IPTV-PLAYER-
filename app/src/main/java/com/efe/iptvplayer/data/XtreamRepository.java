@@ -4,7 +4,9 @@ import org.json.JSONArray;
 import org.json.JSONObject;
 
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
 import okhttp3.OkHttpClient;
@@ -28,7 +30,7 @@ public class XtreamRepository {
 
     private final OkHttpClient client = new OkHttpClient.Builder()
             .connectTimeout(15, TimeUnit.SECONDS)
-            .readTimeout(20, TimeUnit.SECONDS)
+            .readTimeout(45, TimeUnit.SECONDS) // tüm liste tek istekte geliyor, büyük panellerde payload büyük olabilir
             .retryOnConnectionFailure(true)
             .build();
 
@@ -74,57 +76,71 @@ public class XtreamRepository {
 
     public List<Category> getLiveCategories() throws Exception {
         JSONArray catsJson = fetchArray(api("get_live_categories", null));
-        List<Category> categories = new ArrayList<>();
+
+        // Kategori başına ayrı istek atmak yerine (N+1 sorunu - onlarca
+        // kategoride dakikalar sürebiliyordu) TÜM canlı yayınları TEK istekte
+        // çekip client tarafında kategoriye göre grupluyoruz.
+        Map<String, Category> categoriesById = new LinkedHashMap<>();
         for (int i = 0; i < catsJson.length(); i++) {
             JSONObject c = catsJson.getJSONObject(i);
             String catId = c.optString("category_id");
-            Category cat = new Category(catId, c.optString("category_name", "Kategori"));
-            JSONArray streams = fetchArray(api("get_live_streams", "&category_id=" + catId));
-            for (int j = 0; j < streams.length(); j++) {
-                JSONObject s = streams.getJSONObject(j);
-                MediaItem item = new MediaItem();
-                String streamId = s.optString("stream_id");
-                item.setId(streamId);
-                item.setName(s.optString("name", "Kanal"));
-                item.setPosterUrl(s.optString("stream_icon", ""));
-                item.setCategoryId(catId);
-                item.setCategoryName(cat.getName());
-                item.setType(MediaItem.Type.LIVE);
-                item.setStreamUrl(host + "/live/" + username + "/" + password + "/" + streamId + ".m3u8");
-                item.setAddedAtEpochMs(parseAddedTimestamp(s.optString("added", "0")));
-                cat.addItem(item);
-            }
-            categories.add(cat);
+            categoriesById.put(catId, new Category(catId, c.optString("category_name", "Kategori")));
         }
-        return categories;
+
+        JSONArray streams = fetchArray(api("get_live_streams", null)); // category_id verilmezse tümünü döner
+        for (int j = 0; j < streams.length(); j++) {
+            JSONObject s = streams.getJSONObject(j);
+            String catId = s.optString("category_id");
+            Category cat = categoriesById.get(catId);
+            if (cat == null) continue; // bilinmeyen/boş kategori
+
+            String streamId = s.optString("stream_id");
+            MediaItem item = new MediaItem();
+            item.setId(streamId);
+            item.setName(s.optString("name", "Kanal"));
+            item.setPosterUrl(s.optString("stream_icon", ""));
+            item.setCategoryId(catId);
+            item.setCategoryName(cat.getName());
+            item.setType(MediaItem.Type.LIVE);
+            item.setStreamUrl(host + "/live/" + username + "/" + password + "/" + streamId + ".m3u8");
+            item.setAddedAtEpochMs(parseAddedTimestamp(s.optString("added", "0")));
+            cat.addItem(item);
+        }
+        return new ArrayList<>(categoriesById.values());
     }
 
     public List<Category> getVodCategories() throws Exception {
         JSONArray catsJson = fetchArray(api("get_vod_categories", null));
-        List<Category> categories = new ArrayList<>();
+
+        Map<String, Category> categoriesById = new LinkedHashMap<>();
         for (int i = 0; i < catsJson.length(); i++) {
             JSONObject c = catsJson.getJSONObject(i);
             String catId = c.optString("category_id");
-            Category cat = new Category(catId, c.optString("category_name", "Kategori"));
-            JSONArray vods = fetchArray(api("get_vod_streams", "&category_id=" + catId));
-            for (int j = 0; j < vods.length(); j++) {
-                JSONObject s = vods.getJSONObject(j);
-                MediaItem item = new MediaItem();
-                String streamId = s.optString("stream_id");
-                String ext = s.optString("container_extension", "mp4");
-                item.setId(streamId);
-                item.setName(s.optString("name", "Film"));
-                item.setPosterUrl(s.optString("stream_icon", ""));
-                item.setCategoryId(catId);
-                item.setCategoryName(cat.getName());
-                item.setType(MediaItem.Type.MOVIE);
-                item.setStreamUrl(host + "/movie/" + username + "/" + password + "/" + streamId + "." + ext);
-                item.setAddedAtEpochMs(parseAddedTimestamp(s.optString("added", "0")));
-                cat.addItem(item);
-            }
-            categories.add(cat);
+            categoriesById.put(catId, new Category(catId, c.optString("category_name", "Kategori")));
         }
-        return categories;
+
+        // Aynı N+1 düzeltmesi: tüm VOD'ları tek istekte çekiyoruz.
+        JSONArray vods = fetchArray(api("get_vod_streams", null));
+        for (int j = 0; j < vods.length(); j++) {
+            JSONObject s = vods.getJSONObject(j);
+            String catId = s.optString("category_id");
+            Category cat = categoriesById.get(catId);
+            if (cat == null) continue;
+
+            String streamId = s.optString("stream_id");
+            String ext = s.optString("container_extension", "mp4");
+            MediaItem item = new MediaItem();
+            item.setId(streamId);
+            item.setName(s.optString("name", "Film"));
+            item.setPosterUrl(s.optString("stream_icon", ""));
+            item.setCategoryId(catId);
+            item.setCategoryName(cat.getName());
+            item.setType(MediaItem.Type.MOVIE);
+            item.setStreamUrl(host + "/movie/" + username + "/" + password + "/" + streamId + "." + ext);
+            item.setAddedAtEpochMs(parseAddedTimestamp(s.optString("added", "0")));
+            cat.addItem(item);
+        }
+        return new ArrayList<>(categoriesById.values());
     }
 
     private long parseAddedTimestamp(String raw) {
