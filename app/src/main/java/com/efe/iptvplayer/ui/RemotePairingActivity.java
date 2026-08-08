@@ -40,7 +40,8 @@ public class RemotePairingActivity extends AppCompatActivity {
     private final Handler handler = new Handler(Looper.getMainLooper());
     private final DevicePairingApi api = new DevicePairingApi();
     private String deviceId;
-    private boolean stopped = false;
+    private boolean stopped = false;   // liste atandı / kalıcı olarak durduruldu
+    private boolean paused = false;    // activity arka planda, geçici olarak durduruldu
 
     private final Runnable pollRunnable = new Runnable() {
         @Override
@@ -80,26 +81,50 @@ public class RemotePairingActivity extends AppCompatActivity {
                 }
             } catch (Exception e) {
                 setStatus("Bağlantı hatası: " + e.getMessage() + " — yeniden deneniyor...");
-                handler.postDelayed(this::registerDevice, 8000);
+                if (!stopped && !paused) {
+                    handler.postDelayed(this::registerDevice, 8000);
+                }
             }
         });
     }
 
     private void pollOnce() {
-        if (stopped) return;
+        // Ekran arka plandayken (kullanıcı ana ekrana dönmüş vs.) sorgulamayı
+        // tamamen durdur — AGTARAMA'daki "arka planda sürekli tarama" pil
+        // sorununun aynısına burada da düşmemek için. onResume tekrar başlatır.
+        if (stopped || paused) return;
         Executors.newSingleThreadExecutor().execute(() -> {
             try {
                 JSONObject config = api.pollConfig(deviceId);
+                if (stopped || paused) return; // yanıt gelene kadar arka plana geçmiş olabilir
                 if (config != null) {
                     applyConfig(config);
                 } else {
                     handler.postDelayed(pollRunnable, POLL_INTERVAL_MS);
                 }
             } catch (Exception e) {
+                if (stopped || paused) return;
                 // Ağ hatası olursa sessizce tekrar dener, kullanıcıyı rahatsız etmesin.
                 handler.postDelayed(pollRunnable, POLL_INTERVAL_MS);
             }
         });
+    }
+
+    @Override
+    protected void onPause() {
+        super.onPause();
+        paused = true;
+        handler.removeCallbacks(pollRunnable);
+    }
+
+    @Override
+    protected void onResume() {
+        super.onResume();
+        if (paused && !stopped) {
+            paused = false;
+            // Ekrana dönünce yoklamayı kaldığı yerden devam ettir.
+            handler.post(pollRunnable);
+        }
     }
 
     private void applyConfig(JSONObject config) {
