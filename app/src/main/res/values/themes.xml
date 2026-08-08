@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <style name="Theme.IPTVPlayer" parent="Theme.MaterialComponents.DayNight.NoActionBar">
+        <item name="colorPrimary">#E50914</item>
+        <item name="colorPrimaryDark">#0D0D12</item>
+        <item name="colorAccent">#E50914</item>
+        <item name="android:windowBackground">#0D0D12</item>
+        <item name="android:statusBarColor">#0D0D12</item>
+    </style>
+
+    <style name="Theme.IPTVPlayer.Player" parent="Theme.MaterialComponents.NoActionBar">
+        <item name="android:windowFullscreen">true</item>
+        <item name="android:windowBackground">#000000</item>
+    </style>
+</resources>

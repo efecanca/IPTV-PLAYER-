@@ -1,0 +1,308 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>IPTV Player — Cihaz Eşleştirme Paneli</title>
+<style>
+  :root {
+    --bg: #0D0D12;
+    --card: #16161D;
+    --border: #262631;
+    --red: #E50914;
+    --text: #EDEDED;
+    --muted: #8A8A94;
+    --green: #2ECC71;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    font-family: -apple-system, 'Segoe UI', Roboto, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+  }
+  header {
+    padding: 20px 28px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 12px;
+  }
+  header h1 {
+    font-size: 18px;
+    margin: 0;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  header h1 .dot { width: 10px; height: 10px; border-radius: 50%; background: var(--red); display: inline-block; }
+  .config-row { display: flex; gap: 8px; flex-wrap: wrap; }
+  input, select, button {
+    background: #1C1C25;
+    border: 1px solid var(--border);
+    color: var(--text);
+    padding: 9px 12px;
+    border-radius: 8px;
+    font-size: 13px;
+    outline: none;
+  }
+  input:focus, select:focus { border-color: var(--red); }
+  button {
+    cursor: pointer;
+    background: var(--red);
+    border: none;
+    font-weight: 600;
+    transition: opacity .15s;
+  }
+  button:hover { opacity: .85; }
+  button.secondary { background: #1C1C25; border: 1px solid var(--border); }
+  main { padding: 28px; max-width: 1100px; margin: 0 auto; display: grid; gap: 24px; grid-template-columns: 1.1fr 1fr; }
+  @media (max-width: 860px) { main { grid-template-columns: 1fr; } }
+  .card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 20px;
+  }
+  .card h2 { font-size: 15px; margin: 0 0 4px; }
+  .card .sub { color: var(--muted); font-size: 12.5px; margin-bottom: 16px; }
+  table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  th { text-align: left; color: var(--muted); font-weight: 500; padding: 8px 6px; border-bottom: 1px solid var(--border); }
+  td { padding: 10px 6px; border-bottom: 1px solid var(--border); }
+  tr:last-child td { border-bottom: none; }
+  .code-pill {
+    font-family: 'SF Mono', Consolas, monospace;
+    background: #241016;
+    color: var(--red);
+    padding: 3px 8px;
+    border-radius: 6px;
+    font-weight: 700;
+    letter-spacing: 1px;
+    font-size: 13px;
+  }
+  .device-id { color: var(--muted); font-size: 11px; font-family: monospace; }
+  .use-btn { padding: 5px 10px; font-size: 12px; }
+  .empty-state { color: var(--muted); font-size: 13px; text-align: center; padding: 24px 0; }
+  form.assign { display: grid; gap: 10px; }
+  form.assign label { font-size: 12px; color: var(--muted); display: block; margin-bottom: 4px; }
+  form.assign .field { display: flex; flex-direction: column; }
+  form.assign input, form.assign select { width: 100%; }
+  .type-toggle { display: flex; gap: 8px; }
+  .type-toggle button { flex: 1; background: #1C1C25; border: 1px solid var(--border); }
+  .type-toggle button.active { background: var(--red); border-color: var(--red); }
+  .xtream-fields, .m3u-fields { display: grid; gap: 10px; }
+  .hidden { display: none !important; }
+  #assignStatus { font-size: 13px; margin-top: 4px; min-height: 18px; }
+  #assignStatus.ok { color: var(--green); }
+  #assignStatus.err { color: var(--red); }
+  .refresh-row { display:flex; align-items:center; justify-content:space-between; margin-bottom: 16px; }
+  .refresh-row .sub { margin-bottom: 0; }
+  footer { text-align: center; color: var(--muted); font-size: 12px; padding: 24px; }
+</style>
+</head>
+<body>
+
+<header>
+  <h1><span class="dot"></span> IPTV Player — Cihaz Eşleştirme</h1>
+  <div class="config-row">
+    <input id="apiBase" placeholder="API adresi" value="https://fpro.com.tr/api/device" style="min-width:240px">
+    <input id="adminToken" type="password" placeholder="Admin token (x-admin-token)" style="min-width:200px">
+    <button class="secondary" onclick="saveConfig()">Kaydet</button>
+  </div>
+</header>
+
+<main>
+  <section class="card">
+    <div class="refresh-row">
+      <div>
+        <h2>Bekleyen Cihazlar</h2>
+        <p class="sub">Henüz liste atanmamış, kodu ekranda gösteren cihazlar</p>
+      </div>
+      <button class="secondary" onclick="loadPending()">↻ Yenile</button>
+    </div>
+    <table>
+      <thead>
+        <tr><th>Kod</th><th>Cihaz</th><th>Oluşturuldu</th><th></th></tr>
+      </thead>
+      <tbody id="pendingBody">
+        <tr><td colspan="4" class="empty-state">Yükleniyor...</td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <section class="card">
+    <h2>Liste Ata</h2>
+    <p class="sub">Kodu manuel gir ya da soldaki listeden "Kullan"a tıkla</p>
+
+    <form class="assign" onsubmit="return submitAssign(event)">
+      <div class="field">
+        <label>Eşleştirme Kodu</label>
+        <input id="assignCode" placeholder="Örn. 8X4K2P" required style="text-transform:uppercase; letter-spacing:1px; font-weight:700;">
+      </div>
+
+      <div class="type-toggle">
+        <button type="button" id="btnTypeXtream" class="active" onclick="setType('xtream')">Xtream Codes</button>
+        <button type="button" id="btnTypeM3u" onclick="setType('m3u')">M3U Link</button>
+      </div>
+
+      <div class="xtream-fields" id="xtreamFields">
+        <div class="field">
+          <label>Panel Adresi</label>
+          <input id="xtHost" placeholder="http://panel.com:8080">
+        </div>
+        <div class="field">
+          <label>Kullanıcı Adı</label>
+          <input id="xtUser" placeholder="kullanici">
+        </div>
+        <div class="field">
+          <label>Şifre</label>
+          <input id="xtPass" placeholder="sifre">
+        </div>
+      </div>
+
+      <div class="m3u-fields hidden" id="m3uFields">
+        <div class="field">
+          <label>M3U / M3U8 Linki</label>
+          <input id="m3uUrl" placeholder="http://.../playlist.m3u8">
+        </div>
+      </div>
+
+      <button type="submit">Listeyi Ata</button>
+      <div id="assignStatus"></div>
+    </form>
+  </section>
+</main>
+
+<footer>IPTV Player Pro — FPro Cihaz Eşleştirme Paneli</footer>
+
+<script>
+  let currentType = 'xtream';
+
+  function loadSavedConfig() {
+    const base = getSavedValue('iptv_api_base');
+    const token = getSavedValue('iptv_admin_token');
+    if (base) document.getElementById('apiBase').value = base;
+    if (token) document.getElementById('adminToken').value = token;
+  }
+  // Not: sayfa claude.ai içinde önizlendiğinde localStorage çalışmayabilir,
+  // bu yüzden bellek içi (in-memory) bir yedek de tutuluyor. Kendi sunucunda
+  // (FPro'ya deploy ettiğinde) normal şekilde localStorage kullanılabilir.
+  const memoryStore = {};
+  function getSavedValue(key) {
+    try { return localStorage.getItem(key) || memoryStore[key] || ''; }
+    catch (e) { return memoryStore[key] || ''; }
+  }
+  function setSavedValue(key, val) {
+    memoryStore[key] = val;
+    try { localStorage.setItem(key, val); } catch (e) { /* sandbox'ta engellenmiş olabilir */ }
+  }
+
+  function saveConfig() {
+    setSavedValue('iptv_api_base', document.getElementById('apiBase').value.trim());
+    setSavedValue('iptv_admin_token', document.getElementById('adminToken').value.trim());
+    loadPending();
+  }
+
+  function apiBase() { return document.getElementById('apiBase').value.trim().replace(/\/$/, ''); }
+  function adminToken() { return document.getElementById('adminToken').value.trim(); }
+
+  function setType(type) {
+    currentType = type;
+    document.getElementById('btnTypeXtream').classList.toggle('active', type === 'xtream');
+    document.getElementById('btnTypeM3u').classList.toggle('active', type === 'm3u');
+    document.getElementById('xtreamFields').classList.toggle('hidden', type !== 'xtream');
+    document.getElementById('m3uFields').classList.toggle('hidden', type !== 'm3u');
+  }
+
+  function useCode(code) {
+    document.getElementById('assignCode').value = code;
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+
+  async function loadPending() {
+    const body = document.getElementById('pendingBody');
+    body.innerHTML = '<tr><td colspan="4" class="empty-state">Yükleniyor...</td></tr>';
+    try {
+      const res = await fetch(apiBase() + '/admin/pending', {
+        headers: { 'x-admin-token': adminToken() }
+      });
+      if (!res.ok) throw new Error('HTTP ' + res.status);
+      const list = await res.json();
+      if (!list.length) {
+        body.innerHTML = '<tr><td colspan="4" class="empty-state">Bekleyen cihaz yok</td></tr>';
+        return;
+      }
+      body.innerHTML = list.map(d => `
+        <tr>
+          <td><span class="code-pill">${escapeHtml(d.code)}</span></td>
+          <td><span class="device-id">${escapeHtml(d.deviceId).slice(0, 13)}…</span></td>
+          <td>${new Date(d.createdAt).toLocaleTimeString('tr-TR')}</td>
+          <td><button class="use-btn secondary" onclick="useCode('${escapeHtml(d.code)}')">Kullan</button></td>
+        </tr>
+      `).join('');
+    } catch (e) {
+      body.innerHTML = `<tr><td colspan="4" class="empty-state">Yüklenemedi: ${escapeHtml(e.message)}<br><small>API adresini ve token'ı kontrol et, CORS açık olmalı</small></td></tr>`;
+    }
+  }
+
+  async function submitAssign(ev) {
+    ev.preventDefault();
+    const statusEl = document.getElementById('assignStatus');
+    statusEl.className = '';
+    statusEl.textContent = 'Gönderiliyor...';
+
+    const code = document.getElementById('assignCode').value.trim().toUpperCase();
+    let config;
+    if (currentType === 'xtream') {
+      config = {
+        type: 'xtream',
+        host: document.getElementById('xtHost').value.trim(),
+        username: document.getElementById('xtUser').value.trim(),
+        password: document.getElementById('xtPass').value.trim(),
+      };
+      if (!config.host || !config.username || !config.password) {
+        statusEl.className = 'err';
+        statusEl.textContent = 'Panel adresi, kullanıcı adı ve şifre zorunlu.';
+        return false;
+      }
+    } else {
+      config = { type: 'm3u', url: document.getElementById('m3uUrl').value.trim() };
+      if (!config.url) {
+        statusEl.className = 'err';
+        statusEl.textContent = 'M3U linki zorunlu.';
+        return false;
+      }
+    }
+
+    try {
+      const res = await fetch(apiBase() + '/admin/assign', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'x-admin-token': adminToken() },
+        body: JSON.stringify({ code, config })
+      });
+      const json = await res.json();
+      if (!res.ok || !json.success) {
+        throw new Error(json.reason || json.error || ('HTTP ' + res.status));
+      }
+      statusEl.className = 'ok';
+      statusEl.textContent = '✓ Liste başarıyla atandı. Cihaz birkaç saniye içinde otomatik açılacak.';
+      loadPending();
+    } catch (e) {
+      statusEl.className = 'err';
+      statusEl.textContent = 'Hata: ' + e.message;
+    }
+    return false;
+  }
+
+  function escapeHtml(str) {
+    return String(str).replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
+  }
+
+  loadSavedConfig();
+  loadPending();
+</script>
+</body>
+</html>

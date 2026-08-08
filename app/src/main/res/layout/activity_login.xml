@@ -1,0 +1,136 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="#0D0D12">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:padding="24dp"
+        android:gravity="center_horizontal">
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="48dp"
+            android:text="IPTV Player Pro"
+            android:textColor="#FFFFFF"
+            android:textSize="26sp"
+            android:textStyle="bold" />
+
+        <RadioGroup
+            android:id="@+id/rgSourceType"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:layout_marginTop="24dp"
+            android:gravity="center">
+
+            <RadioButton
+                android:id="@+id/rbXtream"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Xtream Codes"
+                android:textColor="#FFFFFF"
+                android:checked="true" />
+
+            <RadioButton
+                android:id="@+id/rbM3U"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="24dp"
+                android:text="M3U Link"
+                android:textColor="#FFFFFF" />
+        </RadioGroup>
+
+        <!-- Xtream alanları -->
+        <LinearLayout
+            android:id="@+id/layoutXtream"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:layout_marginTop="20dp">
+
+            <EditText
+                android:id="@+id/etHost"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:hint="Panel adresi (http://host:port)"
+                android:textColorHint="#888888"
+                android:textColor="#FFFFFF"
+                android:inputType="textUri" />
+
+            <EditText
+                android:id="@+id/etUsername"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:hint="Kullanıcı adı"
+                android:textColorHint="#888888"
+                android:textColor="#FFFFFF"
+                android:layout_marginTop="8dp" />
+
+            <EditText
+                android:id="@+id/etPassword"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:hint="Şifre"
+                android:textColorHint="#888888"
+                android:textColor="#FFFFFF"
+                android:inputType="textPassword"
+                android:layout_marginTop="8dp" />
+        </LinearLayout>
+
+        <!-- M3U alanı -->
+        <LinearLayout
+            android:id="@+id/layoutM3U"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:layout_marginTop="20dp"
+            android:visibility="gone">
+
+            <EditText
+                android:id="@+id/etM3UUrl"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:hint="M3U / M3U8 linki"
+                android:textColorHint="#888888"
+                android:textColor="#FFFFFF"
+                android:inputType="textUri" />
+        </LinearLayout>
+
+        <Button
+            android:id="@+id/btnConnect"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="24dp"
+            android:text="Bağlan" />
+
+        <Button
+            android:id="@+id/btnRemotePairing"
+            style="?android:attr/buttonBarButtonStyle"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            android:textColor="#E50914"
+            android:text="Uzaktan Yükle (Cihaz Kodu ile)" />
+
+        <ProgressBar
+            android:id="@+id/progressBar"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="16dp"
+            android:visibility="gone" />
+
+        <TextView
+            android:id="@+id/tvError"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="12dp"
+            android:textColor="#FF5555"
+            android:gravity="center" />
+
+    </LinearLayout>
+</ScrollView>
