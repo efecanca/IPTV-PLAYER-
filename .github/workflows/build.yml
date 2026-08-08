@@ -1,0 +1,39 @@
+name: Build Debug APK
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+  workflow_dispatch: {}   # Actions sekmesinden "Run workflow" ile manuel de tetiklenebilir
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Kodu çek
+        uses: actions/checkout@v4
+
+      - name: JDK 17 kur
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+
+      # Repo'da henüz gradlew wrapper dosyaları yok, bu action Gradle'ı
+      # doğrudan kurup önbelleğe alıyor (wrapper'a ihtiyaç yok).
+      - name: Gradle kur
+        uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.7'
+
+      - name: Debug APK derle
+        run: gradle assembleDebug --no-daemon
+
+      - name: APK'yı artifact olarak yükle
+        uses: actions/upload-artifact@v4
+        with:
+          name: iptv-player-debug-apk
+          path: app/build/outputs/apk/debug/*.apk
+          retention-days: 14
