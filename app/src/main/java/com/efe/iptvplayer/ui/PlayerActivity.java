@@ -21,8 +21,11 @@ import androidx.media3.common.MediaItem;
 import androidx.media3.common.PlaybackException;
 import androidx.media3.common.Player;
 import androidx.media3.common.util.UnstableApi;
+import androidx.media3.datasource.DefaultDataSource;
+import androidx.media3.datasource.DefaultHttpDataSource;
 import androidx.media3.exoplayer.DefaultLoadControl;
 import androidx.media3.exoplayer.ExoPlayer;
+import androidx.media3.exoplayer.source.DefaultMediaSourceFactory;
 import androidx.media3.ui.PlayerView;
 
 import com.efe.iptvplayer.R;
@@ -185,6 +188,21 @@ public class PlayerActivity extends AppCompatActivity {
     // ExoPlayer motoru
     // ---------------------------------------------------------------
 
+    /**
+     * Birçok IPTV stream'i (özellikle Xtream panelleri) http↔https arası
+     * yönlendirme (redirect) yapıyor. ExoPlayer'ın varsayılan HTTP data
+     * source'u bunu güvenlik gereği reddediyor ve "bazı kanallar hiç
+     * açılmıyor" sorununa yol açıyor. Cross-protocol redirect'e izin veriyoruz.
+     */
+    private DefaultMediaSourceFactory buildMediaSourceFactory() {
+        DefaultHttpDataSource.Factory httpDataSourceFactory = new DefaultHttpDataSource.Factory()
+                .setAllowCrossProtocolRedirects(true)
+                .setConnectTimeoutMs(15_000)
+                .setReadTimeoutMs(15_000);
+        DefaultDataSource.Factory dataSourceFactory = new DefaultDataSource.Factory(this, httpDataSourceFactory);
+        return new DefaultMediaSourceFactory(dataSourceFactory);
+    }
+
     private void startExoPlayer(long resumeMs) {
         releaseVlc();
         usingVlc = false;
@@ -203,6 +221,7 @@ public class PlayerActivity extends AppCompatActivity {
 
         exoPlayer = new ExoPlayer.Builder(this)
                 .setLoadControl(loadControl)
+                .setMediaSourceFactory(buildMediaSourceFactory())
                 .build();
         exoPlayerView.setPlayer(exoPlayer);
 

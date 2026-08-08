@@ -58,7 +58,8 @@ public class M3UParser {
             if (line.isEmpty()) continue;
 
             if (line.startsWith("#EXTINF")) {
-                pendingName = extractName(line);
+                String tvgName = extractAttr(line, "tvg-name");
+                pendingName = (tvgName != null && !tvgName.isEmpty()) ? tvgName : extractName(line);
                 pendingLogo = extractAttr(line, "tvg-logo");
                 pendingGroup = extractAttr(line, "group-title");
                 if (pendingGroup == null || pendingGroup.isEmpty()) pendingGroup = "Diğer";
