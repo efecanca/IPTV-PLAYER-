@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<network-security-config>
+    <!--
+      IPTV panelleri (Xtream Codes / M3U kaynakları) çoğunlukla http:// üzerinden
+      yayın yapıyor, https değil. Android 9+ varsayılan olarak cleartext (http)
+      trafiği engellediği için, kullanıcının gireceği HERHANGİ bir panel adresine
+      bağlanabilmek adına tüm domainler için cleartext'e izin veriyoruz.
+    -->
+    <base-config cleartextTrafficPermitted="true">
+        <trust-anchors>
+            <certificates src="system" />
+        </trust-anchors>
+    </base-config>
+</network-security-config>
